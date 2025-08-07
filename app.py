@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 import streamlit as st
 import os
 import google.generativeai as genai
-from google.generativeai.types import Part
 from PIL import Image
 
 # Set Streamlit page config
@@ -48,11 +47,11 @@ if upload_files is not None:
     image = Image.open(upload_files)
     st.image(image, caption="Uploaded Document", use_container_width=True)
 
-    # 🔥 THIS is the correct upload for Gemini (fixes timeout on deployment)
-    image_parts = Part.from_data(
-        mime_type=upload_files.type,
-        data=upload_files.getvalue()
-    )
+    # ✅ Upload format supported by Gemini
+    image_parts = {
+        "mime_type": upload_files.type,
+        "data": upload_files.getvalue()
+    }
 else:
     st.info("Please upload an image to begin")
 
