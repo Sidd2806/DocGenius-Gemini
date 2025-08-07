@@ -27,10 +27,15 @@ styled_text = f"<span style='font-family:serif;'>{text}</span>"
 st.markdown(styled_text, unsafe_allow_html=True)
 
 # Gemini Vision function
-def get_gimini_response(system_prompt, image_parts, user_prompt):
-    model = genai.GenerativeModel('gemini-1.5-flash')  # Use more stable & capable model
-    response = model.generate_content([system_prompt, *image_parts, user_prompt])
+def get_gimini_response(system_prompt, image, user_prompt):
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content([
+        system_prompt,
+        image,
+        user_prompt
+    ])
     return response.text
+
 
 # Upload image
 st.divider()
@@ -42,11 +47,8 @@ if upload_files is not None:
     image = Image.open(upload_files)
     st.image(image, caption="Uploaded Document", use_container_width=True)
 
-    # Prepare image for Gemini input
-    image_parts = [{
-        "mime_type": upload_files.type,
-        "data": upload_files.getvalue()
-    }]
+    # 🔥 THIS is the correct upload for Gemini (fixes timeout on deployment)
+    image_parts = genai.upload_file(upload_files.getvalue(), mime_type=upload_files.type)
 else:
     st.info("Please upload an image to begin")
 
