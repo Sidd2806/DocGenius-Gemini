@@ -4,53 +4,17 @@ import os
 import google.generativeai as genai
 from PIL import Image
 
-# Set Streamlit page config (must be at top)
-st.set_page_config(page_title="GeminiDecode: Multilanguage Document Extraction by Gemini Pro")
+# Set Streamlit page config
+st.set_page_config(
+    page_title="GeminiDecode: Multilanguage Document Extraction by Gemini Pro",
+    page_icon="🤖",
+    layout="centered"
+)
 
 # Load environment variables and Gemini API key
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=api_key)
-
-# Apply custom CSS styling
-st.markdown("""
-    <style>
-    /* Push header & text up */
-    .block-container {
-        padding-top: 3rem;
-    }
-
-    h1, .stMarkdown {
-        margin-bottom: 1rem;
-    }
-
-    /* Style file uploader text */
-    .stFileUploader label {
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-bottom: 0.3rem;
-    }
-
-    /* Style button */
-    .stButton>button {
-        color: white;
-        background: linear-gradient(90deg, #ff416c, #ff4b2b);
-        border: none;
-        padding: 0.7rem 2rem;
-        border-radius: 999px;
-        font-weight: bold;
-        font-size: 1rem;
-        transition: all 0.3s ease-in-out;
-        display: block;
-        margin: 0.2rem auto auto 10rem;  /* Centered */
-    }
-
-    .stButton>button:hover {
-        background: linear-gradient(90deg, #ff4b2b, #ff416c);
-        transform: scale(1.05);
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # Header and description
 st.header("GeminiDecode: Multilanguage Document Extraction by Gemini Pro")
@@ -63,30 +27,31 @@ styled_text = f"<span style='font-family:serif;'>{text}</span>"
 st.markdown(styled_text, unsafe_allow_html=True)
 
 # Gemini Vision function
-def get_gimini_response(input, image, prompt):
-    model = genai.GenerativeModel('gemini-2.5-flash')
-    response = model.generate_content([input, image, prompt])
+def get_gimini_response(system_prompt, image_parts, user_prompt):
+    model = genai.GenerativeModel('gemini-1.5-flash')  # Use more stable & capable model
+    response = model.generate_content([system_prompt, *image_parts, user_prompt])
     return response.text
 
 # Upload image
 st.divider()
-
 upload_files = st.file_uploader("Choose an image of the document:", type=["jpg", "jpeg", "png"])
-image = None
 
-# Load image
-def input_image_details(upload_files):
-    if upload_files is not None:
-        image = Image.open(upload_files)
-        st.image(image, caption="Uploaded Document", use_container_width=True)
-        return image
-    return None
+# Handle image
+image_parts = None
+if upload_files is not None:
+    image = Image.open(upload_files)
+    st.image(image, caption="Uploaded Document", use_container_width=True)
 
-# Show image if uploaded
-image = input_image_details(upload_files)
+    # Prepare image for Gemini input
+    image_parts = [{
+        "mime_type": upload_files.type,
+        "data": upload_files.getvalue()
+    }]
+else:
+    st.info("Please upload an image to begin")
 
 # User query
-user_question = st.text_input("What do you want to know?'", placeholder='e.g., Explain the complete document in brief')
+user_question = st.text_input("What do you want to know?", placeholder='e.g., Explain the complete document in brief')
 
 # Submit
 submit = st.button("Submit")
@@ -97,6 +62,11 @@ if submit:
     elif not user_question.strip():
         st.warning("Please enter a question about the document.")
     else:
-        response = get_gimini_response("Answer the user's question based on this document image:", image, user_question)
+        with st.spinner("Analyzing document with Gemini..."):
+            response = get_gimini_response(
+                "You are an expert document analyst. Analyze this image and answer the question accordingly.",
+                image_parts,
+                user_question
+            )
         st.subheader("The response is:")
         st.write(response)
