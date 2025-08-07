@@ -48,7 +48,10 @@ if upload_files is not None:
     st.image(image, caption="Uploaded Document", use_container_width=True)
 
     # 🔥 THIS is the correct upload for Gemini (fixes timeout on deployment)
-    image_parts = genai.upload_file(upload_files.getvalue(), mime_type=upload_files.type)
+    image_parts = {
+        "mime_type": upload_files.type,
+        "data": upload_files.getvalue()
+    }
 else:
     st.info("Please upload an image to begin")
 
